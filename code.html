@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Capture photo iPhone</title>
+  </head>
+  <body>
+    <video id="video" autoplay playsinline width="320" height="240"></video>
+    <br />
+    <button id="capture">Prendre Photo et Envoyer</button>
+    <p id="status"></p>
+    <canvas id="canvas" style="display: none"></canvas>
+
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const captureBtn = document.getElementById("capture");
+      const status = document.getElementById("status");
+
+      // Demande accès caméra arrière
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" } })
+        .then((stream) => {
+          video.srcObject = stream;
+        })
+        .catch((e) => {
+          alert("Erreur caméra : " + e);
+        });
+
+      captureBtn.onclick = () => {
+        const ctx = canvas.getContext("2d");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+
+        canvas.toBlob(
+          async (blob) => {
+            status.textContent = "Envoi de la photo...";
+            try {
+              const formData = new FormData();
+              formData.append("image", blob, "photo.jpg");
+
+              const resp = await fetch("http://192.168.1.23:5000/detect", {
+                method: "POST",
+                body: formData,
+              });
+              const json = await resp.json();
+              status.textContent = "Réponse : " + JSON.stringify(json);
+            } catch (err) {
+              status.textContent = "Erreur envoi : " + err;
+            }
+          },
+          "image/jpeg",
+          0.95
+        );
+      };
+    </script>
+  </body>
+</html>
